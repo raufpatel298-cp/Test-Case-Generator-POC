@@ -1,0 +1,86 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "Functional Testing",
+  "version": "1.0",
+  "purpose": "Identify functional test scenarios that are directly supported by the provided requirements.",
+  "applicability": {
+    "apply_when": [
+      "The requirement describes a user action and expected system behavior.",
+      "The requirement describes a business rule.",
+      "The requirement describes a workflow.",
+      "The requirement describes a validation rule.",
+      "The requirement describes a state change.",
+      "The requirement describes an input or output behavior."
+    ],
+    "do_not_apply_when": [
+      "The behavior is not present in the supplied requirements or project documents.",
+      "The scenario would require inventing a business rule.",
+      "The scenario would require inventing an unsupported system behavior."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Positive Behavior",
+      "description": "Verify the explicitly supported successful behavior.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Negative Behavior",
+      "description": "Verify behavior when an explicitly defined rule is violated.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Input Validation",
+      "description": "Validate inputs when the requirement defines input rules or constraints.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Required Fields",
+      "description": "Verify required-field behavior when a field is explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Optional Fields",
+      "description": "Verify optional-field behavior when optionality is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Boundary Conditions",
+      "description": "Test boundaries derived from explicitly stated minimum or maximum constraints.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Error Handling",
+      "description": "Verify explicitly specified error behavior and failure outcomes.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Workflow",
+      "description": "Verify each materially distinct workflow path described by the requirement.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "State Transition",
+      "description": "Verify state changes explicitly described by the requirement.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "must_preserve_requirement_intent": true,
+    "must_generate_distinct_supported_scenarios": true,
+    "must_not_use_arbitrary_test_case_limit": true,
+    "must_not_invent_business_rules": true,
+    "must_not_invent_acceptance_criteria": true,
+    "must_not_invent_error_messages": true,
+    "must_not_invent_system_behavior": true,
+    "must_not_generate_unrelated_domain_scenarios": true
+  },
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "Missing information must not be silently invented."
+  }
+}

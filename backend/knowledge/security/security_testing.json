@@ -1,0 +1,190 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "Security Testing",
+  "version": "1.0",
+  "purpose": "Identify security-related test scenarios that are directly supported by the provided requirements and project documentation.",
+  "applicability": {
+    "apply_when": [
+      "The requirement describes authentication.",
+      "The requirement describes authorization.",
+      "The requirement describes roles or permissions.",
+      "The requirement describes sessions or tokens.",
+      "The requirement describes credentials or sensitive information.",
+      "The requirement explicitly describes security controls.",
+      "The requirement describes protection against a specific attack or invalid input.",
+      "The requirement describes security-related failure behavior."
+    ],
+    "do_not_apply_when": [
+      "The security behavior is not supported by the supplied requirements or project documentation.",
+      "The scenario would require inventing a security policy.",
+      "The scenario would require inventing a role or permission.",
+      "The scenario would require inventing a security threshold.",
+      "A security control is not mentioned or reasonably derived from an explicit requirement."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Authentication",
+      "description": "Verify authentication behavior when authentication is explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Credential Validation",
+      "description": "Verify credential validation when credentials are explicitly part of the requirement.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Invalid Credentials",
+      "description": "Verify explicitly defined behavior for invalid credentials.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Authorization",
+      "description": "Verify access restrictions when authorization rules are explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Role and Permission Boundaries",
+      "description": "Verify explicitly defined role or permission boundaries.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Session Management",
+      "description": "Verify session behavior when session requirements are explicitly described.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Token Handling",
+      "description": "Verify token behavior when tokens are explicitly part of the requirement.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Token Expiration",
+      "description": "Verify token expiration only when expiration behavior or duration is explicitly specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Token Invalidity",
+      "description": "Verify invalid-token behavior when token validation is explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Injection Protection",
+      "description": "Test injection attempts when the requirement explicitly addresses input security, injection protection, or a security-sensitive input.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "SQL Injection",
+      "description": "Test SQL injection when SQL/database input protection is explicitly relevant to the requirement or project documentation.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Cross-Site Scripting",
+      "description": "Test XSS when user-controlled input is rendered or the requirement explicitly requires XSS protection.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Sensitive Information Exposure",
+      "description": "Verify that explicitly sensitive information is handled according to stated requirements.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Security Error Handling",
+      "description": "Verify security-related error behavior when explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Brute Force Protection",
+      "description": "Test repeated authentication attempts only when brute-force protection, login-attempt limits, or equivalent behavior is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Rate Limiting",
+      "description": "Test rate limiting only when a rate limit or request restriction is explicitly specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Account Lockout",
+      "description": "Test account lockout only when lockout behavior is explicitly specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Security Bypass",
+      "description": "Verify explicitly defined access-control or authentication bypass protections.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "security_cases_must_be_requirement_bound": true,
+    "must_not_invent_security_policy": true,
+    "must_not_invent_roles": true,
+    "must_not_invent_permissions": true,
+    "must_not_invent_password_policy": true,
+    "must_not_invent_token_expiration": true,
+    "must_not_invent_session_timeout": true,
+    "must_not_invent_rate_limit": true,
+    "must_not_invent_lockout_threshold": true,
+    "must_not_invent_security_headers": true,
+    "must_not_invent_encryption_requirements": true,
+    "must_not_invent_attack_protection_requirements": true,
+    "must_not_generate_unrelated_security_scenarios": true
+  },
+  "security_boundary_rules": {
+    "explicit_security_requirement": "Generate the applicable security scenarios.",
+    "security_behavior_implied_by_explicit_input_handling": "Generate only the security scenarios reasonably derived from that behavior.",
+    "missing_security_policy": "Report the missing policy as a QA gap rather than inventing one.",
+    "uncertain_security_behavior": "Use 'Requires QA Input' where an expected security behavior is necessary but unspecified."
+  },
+  "examples": [
+    {
+      "requirement": "Users authenticate using email and password.",
+      "applicable_scenarios": [
+        "Valid credentials",
+        "Invalid credentials",
+        "Missing required credential input"
+      ],
+      "not_automatically_assumed": [
+        "MFA",
+        "Account lockout",
+        "Password expiration",
+        "Password history",
+        "Rate limiting"
+      ]
+    },
+    {
+      "requirement": "The system rejects SQL injection attempts in the login fields.",
+      "applicable_scenarios": [
+        "SQL injection payload in email",
+        "SQL injection payload in password",
+        "Injection attempt does not bypass authentication",
+        "Application does not expose database errors"
+      ],
+      "not_automatically_assumed": [
+        "Specific database technology",
+        "Specific SQL error text",
+        "Specific HTTP status unless specified"
+      ]
+    },
+    {
+      "requirement": "Users remain authenticated for 30 days when Remember Me is selected.",
+      "applicable_scenarios": [
+        "Remember Me selected",
+        "Session remains valid within the stated period",
+        "Session expires after the stated period"
+      ],
+      "not_automatically_assumed": [
+        "Different expiration duration",
+        "Concurrent-session policy",
+        "Token implementation details"
+      ]
+    }
+  ],
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "Missing security requirements must be identified as gaps and must not be silently invented."
+  }
+}

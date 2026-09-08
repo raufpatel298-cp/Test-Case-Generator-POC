@@ -1,0 +1,182 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "Boundary and Input Testing",
+  "version": "1.0",
+  "purpose": "Identify input, boundary, equivalence, and validation scenarios derived from explicit requirements.",
+  "applicability": {
+    "apply_when": [
+      "The requirement specifies a minimum value.",
+      "The requirement specifies a maximum value.",
+      "The requirement specifies an exact length.",
+      "The requirement specifies an allowed format.",
+      "The requirement specifies allowed or disallowed values.",
+      "The requirement specifies required or optional input.",
+      "The requirement specifies input transformation or normalization behavior.",
+      "The requirement specifies validation behavior."
+    ],
+    "do_not_apply_when": [
+      "No input, constraint, or validation behavior is present.",
+      "A boundary would have to be invented.",
+      "An unsupported maximum or minimum would have to be assumed."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Exact Minimum",
+      "description": "Test the exact stated minimum value.",
+      "condition": "Generate only when a minimum is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Below Minimum",
+      "description": "Test a value immediately below the stated minimum.",
+      "condition": "Generate only when a minimum is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Above Minimum",
+      "description": "Test a valid value immediately above the stated minimum.",
+      "condition": "Generate only when a minimum is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Exact Maximum",
+      "description": "Test the exact stated maximum value.",
+      "condition": "Generate only when a maximum is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Above Maximum",
+      "description": "Test a value immediately above the stated maximum.",
+      "condition": "Generate only when a maximum is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Below Maximum",
+      "description": "Test a valid value immediately below the stated maximum.",
+      "condition": "Generate only when a maximum is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Exact Length",
+      "description": "Test an explicitly stated exact input length.",
+      "condition": "Generate only when exact length is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Invalid Length",
+      "description": "Test input lengths that violate an explicitly stated length constraint.",
+      "condition": "Generate only when a length constraint is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Valid Format",
+      "description": "Test a valid format explicitly described by the requirement.",
+      "condition": "Generate only when a format is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Invalid Format",
+      "description": "Test an invalid format when the requirement defines format validation.",
+      "condition": "Generate only when format validation is explicitly supported.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Required Input",
+      "description": "Verify behavior when a required input is provided.",
+      "condition": "Generate only when the field is explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Missing Required Input",
+      "description": "Verify behavior when an explicitly required input is omitted.",
+      "condition": "Generate only when the field is explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Optional Input",
+      "description": "Verify behavior when an explicitly optional input is omitted or supplied.",
+      "condition": "Generate only when optionality is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Empty Input",
+      "description": "Verify empty input behavior when relevant to an explicitly defined field or validation rule.",
+      "condition": "Do not assume empty input behavior if the requirement gives no basis for it.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Whitespace Handling",
+      "description": "Verify whitespace behavior only when the requirement specifies trimming, preservation, rejection, or normalization.",
+      "condition": "Do not assume whitespace should be stripped.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Case Sensitivity",
+      "description": "Verify case behavior only when the requirement specifies case sensitivity or case insensitivity.",
+      "condition": "Do not assume case behavior.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Allowed Values",
+      "description": "Test values explicitly allowed by the requirement.",
+      "condition": "Generate only from explicitly defined allowed values.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Disallowed Values",
+      "description": "Test values explicitly prohibited by the requirement.",
+      "condition": "Generate only from explicitly defined prohibited values.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "must_use_explicit_constraints": true,
+    "must_not_invent_minimum": true,
+    "must_not_invent_maximum": true,
+    "must_not_invent_exact_length": true,
+    "must_not_invent_allowed_values": true,
+    "must_not_invent_format_rules": true,
+    "must_not_assume_whitespace_behavior": true,
+    "must_not_assume_case_behavior": true,
+    "must_not_assume_empty_input_behavior": true,
+    "must_not_generate_unrelated_scenarios": true
+  },
+  "examples": [
+    {
+      "requirement": "Password must be at least 8 characters.",
+      "applicable_scenarios": [
+        "Exactly 8 characters",
+        "7 characters",
+        "9 characters"
+      ],
+      "not_automatically_assumed": [
+        "Maximum password length",
+        "Password expiration",
+        "Password complexity",
+        "Password history"
+      ]
+    },
+    {
+      "requirement": "Email addresses are case-insensitive.",
+      "applicable_scenarios": [
+        "Lowercase email",
+        "Uppercase email",
+        "Mixed-case email"
+      ],
+      "not_automatically_assumed": [
+        "Whitespace trimming",
+        "Email normalization beyond case",
+        "Disposable email blocking"
+      ]
+    }
+  ],
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "If a required boundary, validation rule, or expected behavior is not specified, do not invent it."
+  }
+}

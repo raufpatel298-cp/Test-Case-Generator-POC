@@ -1,0 +1,194 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "Performance and Reliability Testing",
+  "version": "1.0",
+  "purpose": "Identify performance, concurrency, reliability, recovery, and availability test scenarios only when supported by the provided requirements or project documentation.",
+  "applicability": {
+    "apply_when": [
+      "The requirement specifies response time.",
+      "The requirement specifies throughput.",
+      "The requirement specifies concurrent users or requests.",
+      "The requirement specifies load.",
+      "The requirement specifies transaction volume.",
+      "The requirement specifies processing limits.",
+      "The requirement specifies availability.",
+      "The requirement specifies recovery behavior.",
+      "The requirement specifies timeout behavior.",
+      "The requirement specifies retry behavior.",
+      "The requirement specifies endurance or sustained operation.",
+      "The requirement explicitly describes performance or reliability expectations."
+    ],
+    "do_not_apply_when": [
+      "No performance or reliability behavior is supported by the supplied requirements.",
+      "A performance threshold would have to be invented.",
+      "A workload would have to be invented.",
+      "A concurrency level would have to be invented.",
+      "An availability target would have to be invented.",
+      "A recovery-time objective would have to be invented."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Response Time",
+      "description": "Verify explicitly specified response-time requirements.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Response-Time Boundary",
+      "description": "Test at, below, and above an explicitly stated response-time threshold where meaningful.",
+      "condition": "Only when an explicit response-time threshold exists.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Throughput",
+      "description": "Verify explicitly specified transaction or request throughput.",
+      "condition": "Only when throughput is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Concurrent Users",
+      "description": "Verify behavior under an explicitly specified number of concurrent users.",
+      "condition": "Only when concurrency is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Concurrent Requests",
+      "description": "Verify explicitly specified concurrent request behavior.",
+      "condition": "Only when concurrent requests are specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Load",
+      "description": "Verify system behavior under an explicitly defined expected load.",
+      "condition": "Only when load characteristics are specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Stress",
+      "description": "Verify behavior beyond an explicitly stated normal operating limit when such a limit exists.",
+      "condition": "Only when a relevant operating limit or stress condition is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Endurance",
+      "description": "Verify sustained operation for an explicitly specified duration.",
+      "condition": "Only when duration or sustained operation is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Spike",
+      "description": "Verify sudden workload changes when spike behavior or workload variation is explicitly relevant.",
+      "condition": "Only when workload variation is specified or clearly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Capacity",
+      "description": "Verify explicitly stated capacity limits such as records, users, files, or transactions.",
+      "condition": "Only when a capacity constraint is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Timeout",
+      "description": "Verify explicitly specified timeout behavior.",
+      "condition": "Only when timeout behavior or duration is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Recovery",
+      "description": "Verify recovery behavior when recovery requirements are explicitly stated.",
+      "condition": "Only when recovery behavior is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Availability",
+      "description": "Verify availability requirements when an explicit availability target exists.",
+      "condition": "Only when availability requirements are specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Degraded Performance",
+      "description": "Verify explicitly defined behavior when system performance degrades.",
+      "condition": "Only when degraded behavior is specified.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "must_use_explicit_performance_targets": true,
+    "must_not_invent_response_time": true,
+    "must_not_invent_throughput": true,
+    "must_not_invent_concurrency": true,
+    "must_not_invent_load": true,
+    "must_not_invent_record_volume": true,
+    "must_not_invent_user_volume": true,
+    "must_not_invent_duration": true,
+    "must_not_invent_availability_target": true,
+    "must_not_invent_recovery_time": true,
+    "must_not_invent_timeout": true,
+    "must_not_invent_retry_count": true,
+    "must_not_generate_unrelated_performance_scenarios": true
+  },
+  "threshold_rules": {
+    "explicit_threshold": "Use the exact threshold supplied by the requirement.",
+    "minimum_threshold": "Test the stated boundary and meaningful values around it.",
+    "maximum_threshold": "Test the stated boundary and meaningful values around it.",
+    "missing_threshold": "Report the missing performance criterion instead of inventing one.",
+    "missing_workload": "Report the missing workload information instead of inventing it."
+  },
+  "examples": [
+    {
+      "requirement": "The login response must be returned within 2 seconds.",
+      "applicable_scenarios": [
+        "Login response at or within 2 seconds",
+        "Login response exceeding the 2-second requirement"
+      ],
+      "not_automatically_assumed": [
+        "100 concurrent users",
+        "10,000 records",
+        "500 requests per second"
+      ]
+    },
+    {
+      "requirement": "The system must support 100 concurrent users.",
+      "applicable_scenarios": [
+        "100 concurrent users",
+        "Behavior when the stated concurrency capacity is reached"
+      ],
+      "not_automatically_assumed": [
+        "101 users must be rejected",
+        "500 concurrent users",
+        "Specific response-time threshold"
+      ]
+    },
+    {
+      "requirement": "The system should continue operating during a temporary authentication-service outage.",
+      "applicable_scenarios": [
+        "Authentication dependency becomes unavailable",
+        "System behavior during the defined outage condition",
+        "Recovery after the dependency becomes available"
+      ],
+      "not_automatically_assumed": [
+        "Specific outage duration",
+        "Specific retry count",
+        "Specific fallback response"
+      ]
+    }
+  ],
+  "missing_information": {
+    "examples": [
+      "Performance threshold not specified.",
+      "Expected concurrent-user count not specified.",
+      "Expected transaction volume not specified.",
+      "Availability target not specified.",
+      "Recovery target not specified."
+    ],
+    "handling": "Record the missing criterion as a QA gap and use 'Requires QA Input' when a test field requires the missing value."
+  },
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "Performance and reliability assumptions must never be silently invented."
+  }
+}

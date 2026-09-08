@@ -1,0 +1,132 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "Negative and Error Handling Testing",
+  "version": "1.0",
+  "purpose": "Identify negative, invalid, rejected, and failure-path test scenarios that are directly supported by the provided requirements.",
+  "applicability": {
+    "apply_when": [
+      "The requirement defines an invalid input condition.",
+      "The requirement defines a rejection condition.",
+      "The requirement defines an error condition.",
+      "The requirement defines a failure response.",
+      "The requirement defines an unavailable dependency.",
+      "The requirement defines a timeout or retry behavior.",
+      "The requirement defines an unsuccessful workflow outcome."
+    ],
+    "do_not_apply_when": [
+      "The failure behavior is not supported by the supplied requirements.",
+      "The expected error behavior would have to be invented.",
+      "The system dependency or failure condition is not relevant to the requirement."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Invalid Input",
+      "description": "Verify explicitly defined invalid inputs are rejected correctly.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Missing Input",
+      "description": "Verify behavior when an explicitly required input is missing.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Invalid Format",
+      "description": "Verify explicitly defined format violations.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Rejected Operation",
+      "description": "Verify an operation that the requirement explicitly says must be rejected.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Invalid State",
+      "description": "Verify behavior when an explicitly unsupported state is encountered.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Dependency Failure",
+      "description": "Verify behavior when a required dependency is unavailable, only when such dependency behavior is relevant and supported.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Timeout",
+      "description": "Verify timeout behavior when a timeout requirement or dependency timeout behavior is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Retry",
+      "description": "Verify retry behavior only when retry behavior is explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Graceful Failure",
+      "description": "Verify the system fails gracefully when graceful failure behavior is explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Error Recovery",
+      "description": "Verify recovery after a defined error or failure condition.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Repeated Failure",
+      "description": "Verify repeated failure behavior only when the requirement defines a rule related to repeated failures.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "must_preserve_explicit_failure_behavior": true,
+    "must_not_invent_error_messages": true,
+    "must_not_invent_error_codes": true,
+    "must_not_invent_retry_counts": true,
+    "must_not_invent_timeout_values": true,
+    "must_not_invent_fallback_behavior": true,
+    "must_not_invent_failure_policies": true,
+    "must_not_invent_account_policies": true,
+    "must_not_generate_unrelated_failure_scenarios": true
+  },
+  "expected_result_rules": {
+    "when_explicitly_defined": [
+      "Use the exact expected behavior from the requirement."
+    ],
+    "when_not_defined": [
+      "Use 'Requires QA Input' where an expected behavior is necessary but unspecified.",
+      "Do not silently invent an error message or system response."
+    ]
+  },
+  "examples": [
+    {
+      "requirement": "The system rejects an invalid email address.",
+      "applicable_scenarios": [
+        "Invalid email format is rejected"
+      ],
+      "not_automatically_assumed": [
+        "Exact error message",
+        "Error code",
+        "Number of retry attempts"
+      ]
+    },
+    {
+      "requirement": "If the authentication service is unavailable, the application displays a service-unavailable message.",
+      "applicable_scenarios": [
+        "Authentication service unavailable",
+        "Application displays the specified service-unavailable behavior"
+      ],
+      "not_automatically_assumed": [
+        "Specific timeout duration unless specified",
+        "Automatic retry unless specified",
+        "Specific HTTP status unless specified"
+      ]
+    }
+  ],
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "Missing failure behavior must be reported rather than invented."
+  }
+}

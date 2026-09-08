@@ -1,0 +1,133 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "Accessibility and Compatibility Testing",
+  "version": "1.0",
+  "purpose": "Identify accessibility and compatibility test scenarios only when supported by the provided requirements or project documentation.",
+  "applicability": {
+    "apply_when": [
+      "The requirement explicitly mentions accessibility.",
+      "The requirement explicitly mentions keyboard operation.",
+      "The requirement explicitly mentions screen readers.",
+      "The requirement explicitly mentions assistive technologies.",
+      "The requirement explicitly mentions WCAG or an accessibility standard.",
+      "The requirement explicitly specifies supported browsers.",
+      "The requirement explicitly specifies supported devices.",
+      "The requirement explicitly specifies responsive behavior.",
+      "The requirement explicitly specifies operating-system compatibility."
+    ],
+    "do_not_apply_when": [
+      "Accessibility is not mentioned or reasonably supported by the supplied requirements.",
+      "Browser support is not specified.",
+      "Device support is not specified.",
+      "Operating-system support is not specified.",
+      "A compliance level would have to be invented.",
+      "A browser or device would have to be invented."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Keyboard Navigation",
+      "description": "Verify keyboard operation when keyboard accessibility is explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Focus Behavior",
+      "description": "Verify focus behavior when explicitly required or when the requirement specifically describes focus management.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Screen Reader",
+      "description": "Verify screen-reader behavior when explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Accessible Labels",
+      "description": "Verify explicitly required labels or accessible names.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Accessible Error Messages",
+      "description": "Verify accessibility of explicitly required validation or error messages.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Color / Visual Accessibility",
+      "description": "Verify visual accessibility requirements when explicitly specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "WCAG Compliance",
+      "description": "Verify explicitly specified WCAG requirements or conformance levels.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Responsive Layout",
+      "description": "Verify responsive behavior when responsive behavior or supported screen sizes are specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Browser Compatibility",
+      "description": "Verify explicitly supported browsers.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Device Compatibility",
+      "description": "Verify explicitly supported devices.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Operating System Compatibility",
+      "description": "Verify explicitly supported operating systems.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "must_use_explicit_accessibility_requirements": true,
+    "must_use_explicit_compatibility_requirements": true,
+    "must_not_invent_wcag_level": true,
+    "must_not_invent_browser": true,
+    "must_not_invent_device": true,
+    "must_not_invent_operating_system": true,
+    "must_not_invent_screen_size": true,
+    "must_not_invent_assistive_technology": true,
+    "must_not_invent_accessibility_policy": true,
+    "must_not_generate_unrelated_accessibility_scenarios": true,
+    "must_not_generate_unrelated_compatibility_scenarios": true
+  },
+  "examples": [
+    {
+      "requirement": "The login form must be fully operable using the keyboard.",
+      "applicable_scenarios": [
+        "Navigate through login controls using keyboard",
+        "Submit login using the keyboard",
+        "Verify keyboard focus moves through the required controls"
+      ],
+      "not_automatically_assumed": [
+        "Specific WCAG level",
+        "Specific screen reader",
+        "Specific browser"
+      ]
+    },
+    {
+      "requirement": "The application supports Chrome, Firefox, and Edge.",
+      "applicable_scenarios": [
+        "Required functionality in Chrome",
+        "Required functionality in Firefox",
+        "Required functionality in Edge"
+      ],
+      "not_automatically_assumed": [
+        "Safari",
+        "Mobile browsers",
+        "Specific browser versions unless specified"
+      ]
+    }
+  ],
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "Missing accessibility or compatibility requirements must be reported rather than invented."
+  }
+}

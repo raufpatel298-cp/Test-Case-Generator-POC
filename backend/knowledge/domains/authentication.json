@@ -1,0 +1,214 @@
+{
+  "knowledge_type": "qa_domain",
+  "name": "Authentication",
+  "version": "1.0",
+  "purpose": "Provide authentication-domain testing considerations that can be applied only when the supplied requirements contain corresponding authentication behavior.",
+  "domain_signals": [
+    "login",
+    "log in",
+    "sign in",
+    "sign-in",
+    "authentication",
+    "authenticate",
+    "credentials",
+    "password",
+    "email login",
+    "SSO",
+    "OAuth",
+    "single sign-on",
+    "session",
+    "remember me",
+    "logout",
+    "token"
+  ],
+  "coverage_dimensions": [
+    {
+      "name": "Credential Authentication",
+      "apply_when": [
+        "The requirement describes authentication using credentials."
+      ],
+      "consider": [
+        "Valid credentials",
+        "Invalid credentials",
+        "Missing credentials",
+        "Credential validation"
+      ]
+    },
+    {
+      "name": "Email Authentication",
+      "apply_when": [
+        "The requirement explicitly uses email as an authentication identifier."
+      ],
+      "consider": [
+        "Valid email",
+        "Invalid email",
+        "Missing email",
+        "Email-specific validation"
+      ]
+    },
+    {
+      "name": "Password Authentication",
+      "apply_when": [
+        "The requirement explicitly uses a password for authentication."
+      ],
+      "consider": [
+        "Valid password",
+        "Invalid password",
+        "Missing password",
+        "Password constraints explicitly stated in the requirement"
+      ]
+    },
+    {
+      "name": "Case Sensitivity",
+      "apply_when": [
+        "The requirement explicitly states that email or password comparison is case-sensitive or case-insensitive."
+      ],
+      "consider": [
+        "Lowercase",
+        "Uppercase",
+        "Mixed case"
+      ]
+    },
+    {
+      "name": "Whitespace",
+      "apply_when": [
+        "The requirement explicitly states trimming, preservation, rejection, or normalization of whitespace."
+      ],
+      "consider": [
+        "Leading whitespace",
+        "Trailing whitespace",
+        "Whitespace within the value when relevant"
+      ]
+    },
+    {
+      "name": "Remember Me",
+      "apply_when": [
+        "The requirement explicitly describes a Remember Me or persistent-login feature."
+      ],
+      "consider": [
+        "Remember Me selected",
+        "Remember Me not selected",
+        "Persistence behavior",
+        "Explicit expiration behavior"
+      ]
+    },
+    {
+      "name": "Session Management",
+      "apply_when": [
+        "The requirement explicitly describes sessions or authenticated-session behavior."
+      ],
+      "consider": [
+        "Session creation",
+        "Session validity",
+        "Session expiration",
+        "Logout",
+        "Session invalidation"
+      ]
+    },
+    {
+      "name": "SSO",
+      "apply_when": [
+        "The requirement explicitly mentions SSO, OAuth, an identity provider, or an external authentication provider."
+      ],
+      "consider": [
+        "Successful SSO authentication",
+        "SSO failure",
+        "SSO cancellation",
+        "SSO account mapping",
+        "Unregistered SSO account"
+      ]
+    },
+    {
+      "name": "Authorization",
+      "apply_when": [
+        "The requirement explicitly describes roles, permissions, protected resources, or access restrictions."
+      ],
+      "consider": [
+        "Authorized access",
+        "Unauthorized access",
+        "Role-specific access",
+        "Permission boundaries"
+      ]
+    },
+    {
+      "name": "Authentication Security",
+      "apply_when": [
+        "The requirement explicitly describes security controls or security-sensitive authentication behavior."
+      ],
+      "consider": [
+        "Invalid authentication attempts",
+        "Input security",
+        "Credential protection",
+        "Authentication bypass prevention",
+        "Explicitly defined rate limiting",
+        "Explicitly defined account lockout"
+      ]
+    },
+    {
+      "name": "Authentication Failure",
+      "apply_when": [
+        "The requirement defines behavior when authentication fails."
+      ],
+      "consider": [
+        "Invalid credentials",
+        "Authentication service failure",
+        "Timeout",
+        "Recovery",
+        "Explicitly defined error behavior"
+      ]
+    }
+  ],
+  "strict_applicability_rules": {
+    "must_match_requirement": true,
+    "domain_knowledge_is_not_a_requirement": true,
+    "domain_knowledge_may_suggest_dimensions": true,
+    "domain_knowledge_may_not_create_unsupported_behavior": true,
+    "must_not_invent_mfa": true,
+    "must_not_invent_2fa": true,
+    "must_not_invent_sso": true,
+    "must_not_invent_oauth": true,
+    "must_not_invent_account_lockout": true,
+    "must_not_invent_rate_limiting": true,
+    "must_not_invent_password_expiration": true,
+    "must_not_invent_concurrent_session_policy": true,
+    "must_not_invent_session_duration": true,
+    "must_not_invent_identity_provider": true,
+    "must_not_invent_roles": true,
+    "must_not_invent_permissions": true
+  },
+  "traceability": {
+    "required": true,
+    "rule": "Every authentication test case must reference the requirement statement, rule, acceptance criterion, or explicitly described behavior that caused the scenario to be generated."
+  },
+  "unknown_information": {
+    "rule": "If an authentication behavior is relevant but the requirement does not specify the expected result or policy, report the gap and use 'Requires QA Input' where necessary.",
+    "examples": [
+      "Concurrent-session behavior not specified",
+      "Account-lockout policy not specified",
+      "SSO auto-provisioning policy not specified",
+      "Session expiration duration not specified",
+      "Authentication timeout threshold not specified"
+    ]
+  },
+  "example": {
+    "requirement": "Users can log in using email and password.",
+    "supported_testing": [
+      "Valid email and password",
+      "Invalid credentials",
+      "Missing required credentials",
+      "Explicitly defined email validation",
+      "Explicitly defined password validation"
+    ],
+    "not_automatically_supported": [
+      "MFA",
+      "2FA",
+      "SSO",
+      "OAuth",
+      "Remember Me",
+      "Password expiration",
+      "Account lockout",
+      "Concurrent sessions",
+      "Rate limiting"
+    ]
+  }
+}

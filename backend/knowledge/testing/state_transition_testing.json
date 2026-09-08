@@ -1,0 +1,125 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "State Transition and Workflow Testing",
+  "version": "1.0",
+  "purpose": "Identify distinct workflow paths and state transitions that are directly supported by the provided requirements.",
+  "applicability": {
+    "apply_when": [
+      "The requirement describes multiple system states.",
+      "The requirement describes movement from one state to another.",
+      "The requirement describes a multi-step workflow.",
+      "The requirement describes conditional workflow branches.",
+      "The requirement describes different outcomes depending on a previous action.",
+      "The requirement describes lifecycle behavior.",
+      "The requirement describes a before-and-after state."
+    ],
+    "do_not_apply_when": [
+      "No workflow or state behavior is described.",
+      "A state would have to be invented.",
+      "A transition would require an unsupported business rule.",
+      "A workflow branch is not supported by the supplied requirements."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Initial State",
+      "description": "Verify behavior from each explicitly defined starting state.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Successful Transition",
+      "description": "Verify each explicitly defined successful state transition.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Failed Transition",
+      "description": "Verify explicitly defined conditions where a state transition must fail or be rejected.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Conditional Branch",
+      "description": "Verify each materially distinct workflow branch described by the requirement.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Final State",
+      "description": "Verify the expected final state after an explicitly defined workflow.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Repeated Transition",
+      "description": "Verify repeated actions only when the requirement defines behavior for repeated actions.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Invalid Transition",
+      "description": "Verify attempts to perform explicitly prohibited or unsupported transitions.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "State Persistence",
+      "description": "Verify state remains or changes as explicitly described across the relevant workflow.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Recovery Transition",
+      "description": "Verify recovery from an explicitly defined failure or intermediate state.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "must_identify_each_distinct_supported_state": true,
+    "must_identify_each_distinct_supported_transition": true,
+    "must_test_materially_distinct_workflow_branches": true,
+    "must_not_invent_states": true,
+    "must_not_invent_transitions": true,
+    "must_not_invent_workflow_branches": true,
+    "must_not_invent_business_rules": true,
+    "must_not_invent_lifecycle_rules": true,
+    "must_not_generate_unrelated_workflows": true
+  },
+  "traceability_rules": {
+    "requirement_reference_required": true,
+    "transition_should_reference_source_behavior": true,
+    "workflow_branch_should_reference_source_condition": true
+  },
+  "examples": [
+    {
+      "requirement": "A logged-out user enters valid credentials and is taken to the dashboard.",
+      "applicable_scenarios": [
+        "Logged-out state with valid credentials",
+        "Successful transition from logged out to logged in",
+        "Successful navigation to dashboard"
+      ],
+      "not_automatically_assumed": [
+        "Session expiration",
+        "Concurrent sessions",
+        "Automatic logout",
+        "Account lockout"
+      ]
+    },
+    {
+      "requirement": "A submitted request can be approved or rejected by an authorized reviewer.",
+      "applicable_scenarios": [
+        "Submitted request is approved",
+        "Submitted request is rejected",
+        "Approval workflow branch",
+        "Rejection workflow branch"
+      ],
+      "not_automatically_assumed": [
+        "Cancellation",
+        "Resubmission",
+        "Automatic approval",
+        "Escalation"
+      ]
+    }
+  ],
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "If a transition outcome or workflow rule is not specified, do not invent it."
+  }
+}

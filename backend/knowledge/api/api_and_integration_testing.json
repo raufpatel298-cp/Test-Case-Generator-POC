@@ -1,0 +1,157 @@
+{
+  "knowledge_type": "qa_testing_dimension",
+  "name": "API and Integration Testing",
+  "version": "1.0",
+  "purpose": "Identify API and integration test scenarios only when the supplied requirements or project documentation describe APIs, services, external systems, integrations, requests, responses, or data exchange.",
+  "applicability": {
+    "apply_when": [
+      "The requirement explicitly describes an API.",
+      "The requirement describes an endpoint or service.",
+      "The requirement describes request or response behavior.",
+      "The requirement describes integration with another system.",
+      "The requirement describes data exchange between systems.",
+      "The requirement describes an external authentication provider.",
+      "The requirement describes an external dependency.",
+      "The requirement describes API validation or error behavior."
+    ],
+    "do_not_apply_when": [
+      "No API or integration behavior is present.",
+      "An endpoint would have to be invented.",
+      "A request method would have to be invented.",
+      "A response structure would have to be invented.",
+      "An external system would have to be invented.",
+      "An HTTP status code would have to be invented.",
+      "An integration behavior is not supported by the supplied requirements."
+    ]
+  },
+  "coverage_dimensions": [
+    {
+      "name": "Valid Request",
+      "description": "Verify explicitly defined valid API requests.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Invalid Request",
+      "description": "Verify explicitly defined invalid requests.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Required Request Data",
+      "description": "Verify explicitly required request fields or parameters.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Missing Request Data",
+      "description": "Verify behavior when explicitly required request data is missing.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Request Validation",
+      "description": "Verify request validation rules explicitly described by the requirement.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Response Validation",
+      "description": "Verify explicitly defined response data and behavior.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Error Response",
+      "description": "Verify explicitly defined API error behavior.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Authentication",
+      "description": "Verify API authentication when explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Authorization",
+      "description": "Verify API authorization when explicitly defined.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "External Integration",
+      "description": "Verify interactions with explicitly identified external systems.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Dependency Failure",
+      "description": "Verify integration failure behavior when the requirement defines dependency failure handling.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Timeout",
+      "description": "Verify API or integration timeout behavior only when timeout behavior is specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Retry",
+      "description": "Verify retry behavior only when retry behavior is explicitly specified.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Data Consistency",
+      "description": "Verify data consistency across systems when explicitly required.",
+      "derive_only_from_requirement": true
+    },
+    {
+      "name": "Duplicate Request",
+      "description": "Verify duplicate-request handling only when idempotency or duplicate handling is explicitly relevant.",
+      "derive_only_from_requirement": true
+    }
+  ],
+  "generation_rules": {
+    "must_trace_to_requirement": true,
+    "must_preserve_explicit_api_behavior": true,
+    "must_not_invent_endpoint": true,
+    "must_not_invent_http_method": true,
+    "must_not_invent_request_schema": true,
+    "must_not_invent_response_schema": true,
+    "must_not_invent_http_status": true,
+    "must_not_invent_headers": true,
+    "must_not_invent_authentication_method": true,
+    "must_not_invent_external_system": true,
+    "must_not_invent_retry_policy": true,
+    "must_not_invent_timeout": true,
+    "must_not_invent_idempotency_policy": true,
+    "must_not_invent_data_contract": true,
+    "must_not_generate_unrelated_api_scenarios": true
+  },
+  "examples": [
+    {
+      "requirement": "The application sends the user's email and password to the authentication service and receives a successful login response.",
+      "applicable_scenarios": [
+        "Valid credentials sent to authentication service",
+        "Successful authentication response handled correctly"
+      ],
+      "not_automatically_assumed": [
+        "POST method unless specified",
+        "Specific endpoint URL",
+        "Specific HTTP status",
+        "Specific response JSON structure"
+      ]
+    },
+    {
+      "requirement": "If the payment provider rejects the transaction, the application displays the payment failure state.",
+      "applicable_scenarios": [
+        "Payment provider rejects transaction",
+        "Application handles rejection",
+        "Payment failure state is displayed"
+      ],
+      "not_automatically_assumed": [
+        "Provider HTTP status",
+        "Provider error code",
+        "Automatic retry",
+        "Specific timeout"
+      ]
+    }
+  ],
+  "unknown_information": {
+    "handling": [
+      "Requires QA Input",
+      "blank value"
+    ],
+    "rule": "Missing API or integration details must be identified rather than invented."
+  }
+}

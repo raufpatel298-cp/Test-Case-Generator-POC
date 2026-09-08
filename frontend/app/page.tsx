@@ -454,7 +454,7 @@ export default function Home() {
   ambiguous_requirements?: unknown[];
   uncovered_requirements?: unknown[];
   [key: string]: unknown;
-};const coverage = result?.coverage_analysis || {};
+};
 
   const qaInputItems = useMemo(
     () => getQaInputItems(result),

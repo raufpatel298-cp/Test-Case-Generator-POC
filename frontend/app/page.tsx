@@ -450,7 +450,11 @@ export default function Home() {
   }
 
   const cases = result?.test_cases || [];
-  const coverage = result?.coverage_analysis || {};
+  const coverage = (result?.coverage_analysis || {}) as {
+  ambiguous_requirements?: unknown[];
+  uncovered_requirements?: unknown[];
+  [key: string]: unknown;
+};const coverage = result?.coverage_analysis || {};
 
   const qaInputItems = useMemo(
     () => getQaInputItems(result),

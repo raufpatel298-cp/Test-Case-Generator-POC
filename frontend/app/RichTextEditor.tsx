@@ -8,8 +8,6 @@ import {
   Italic,
   List,
   Code,
-  Table,
-  TableToolbar,
   Undo,
 } from "ckeditor5";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
@@ -57,8 +55,6 @@ export default function RichTextEditor({
             Italic,
             Code,
             List,
-            Table,
-            TableToolbar,
             Undo,
           ],
           toolbar: {
@@ -74,17 +70,8 @@ export default function RichTextEditor({
               "numberedList",
               "|",
               "paragraph",
-              "|",
-              "insertTable",
             ],
             shouldNotGroupWhenFull: true,
-          },
-          table: {
-            contentToolbar: [
-              "tableColumn",
-              "tableRow",
-              "mergeTableCells",
-            ],
           },
         }}
         onChange={(_, editor) => {

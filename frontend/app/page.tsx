@@ -367,6 +367,7 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [error]);
   const [devopsOpen, setDevopsOpen] = useState(false);
+  const [coverageOpen, setCoverageOpen] = useState(false);
   const [devopsOrg, setDevopsOrg] = useState("");
   const [devopsProject, setDevopsProject] = useState("");
   const [devopsToken, setDevopsToken] = useState("");
@@ -1834,16 +1835,165 @@ export default function Home() {
           }
 
           .workspace {
-            align-items: start !important;
             min-height: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
           }
 
-          .input-card,
-          .result-card {
-            min-height: 0 !important;
-            height: auto !important;
+          .workspace.workspace-generated {
+            align-items: start !important;
+          }
+
+          .workspace.workspace-generated .input-card {
+            position: sticky;
+            top: 86px;
+            align-self: start;
+          }
+
+          .workspace.workspace-generated .result-card {
+            max-height: calc(100vh - 108px);
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+            align-self: start;
+          }
+
+          .input-card::before {
+            display: none !important;
+          }
+
+          .coverage-metric-button {
+            cursor: pointer;
+            border: 0;
+            text-align: left;
+            font: inherit;
+          }
+
+          .coverage-metric-button:hover {
+            border-color: #d8cffc;
+            box-shadow: 0 4px 12px rgba(99, 53, 217, 0.08);
+            transform: translateY(-1px);
+          }
+
+          .coverage-metric-button:focus-visible {
+            outline: 2px solid #7c3aed;
+            outline-offset: 2px;
+          }
+
+          .coverage-modal-backdrop,
+          .devops-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(15, 23, 42, 0.48);
+            backdrop-filter: blur(3px);
+          }
+
+          .coverage-modal,
+          .devops-modal {
+            width: min(980px, 100%);
+            max-height: min(86vh, 860px);
+            overflow: hidden;
+            border: 1px solid #e4e5ef;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+            display: flex;
+            flex-direction: column;
+          }
+
+          .coverage-modal-header,
+          .devops-modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 20px 22px;
+            border-bottom: 1px solid #ececf4;
+          }
+
+          .coverage-modal-title,
+          .devops-modal-title {
+            display: grid;
+            gap: 5px;
+          }
+
+          .coverage-modal-title b,
+          .devops-modal-title b {
+            color: #17204b;
+            font-size: 17px;
+          }
+
+          .coverage-modal-title span,
+          .devops-modal-title span {
+            color: #66708f;
+            font-size: 12px;
+            line-height: 1.45;
+          }
+
+          .modal-close {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            border: 1px solid #e3e4ed;
+            border-radius: 9px;
+            background: #fff;
+            color: #475467;
+            font-size: 18px;
+            cursor: pointer;
+          }
+
+          .modal-close:hover {
+            background: #f8f7ff;
+            color: #6335d9;
+          }
+
+          .coverage-modal-body,
+          .devops-modal-body {
+            min-height: 0;
+            overflow-y: auto;
+            padding: 18px 22px 22px;
+          }
+
+          .coverage-modal-body .coverage-review-v2 {
+            margin-top: 0;
+            border: 0;
+            box-shadow: none;
+            background: transparent;
+            padding: 0;
+          }
+
+          .coverage-modal-body .coverage-review-v2-header {
+            margin-bottom: 14px;
+          }
+
+          .devops-modal-body {
+            background: #fbfbfe;
+          }
+
+          @media (max-width: 820px) {
+            .coverage-modal-backdrop,
+            .devops-modal-backdrop {
+              align-items: flex-end;
+              padding: 10px;
+            }
+
+            .coverage-modal,
+            .devops-modal {
+              width: 100%;
+              max-height: 92vh;
+              border-radius: 16px 16px 10px 10px;
+            }
+
+            .workspace.workspace-generated .input-card {
+              position: static;
+            }
+
+            .workspace.workspace-generated .result-card {
+              max-height: none;
+            }
           }
 
           .coverage-review-v2 {
@@ -2052,9 +2202,7 @@ export default function Home() {
 
         <div
           className="side-item"
-          onClick={() =>
-            setDevopsOpen((v) => !v)
-          }
+          onClick={() => setDevopsOpen(true)}
         >
           <span>↗</span>
           DevOps Integration
@@ -2091,7 +2239,11 @@ export default function Home() {
           </div>
         </div>
 
-        <section className="workspace">
+        <section
+          className={`workspace ${
+            result && cases.length > 1 ? "workspace-generated" : ""
+          }`}
+        >
           <div className="card input-card">
             <div className="field">
               <label>
@@ -2435,14 +2587,24 @@ export default function Home() {
                       <b>{stats.uncovered}</b>
                       <span>Uncovered</span>
                     </div>
-                    <div>
+                    <button
+                      type="button"
+                      className="coverage-metric-button"
+                      onClick={() => setCoverageOpen(true)}
+                      aria-label={`Open Coverage and QA Review. ${stats.ambiguous} ambiguous`}
+                    >
                       <b>{stats.ambiguous}</b>
                       <span>Ambiguous</span>
-                    </div>
-                    <div>
+                    </button>
+                    <button
+                      type="button"
+                      className="coverage-metric-button"
+                      onClick={() => setCoverageOpen(true)}
+                      aria-label={`Open Coverage and QA Review. ${stats.qa} QA input`}
+                    >
                       <b>{stats.qa}</b>
                       <span>QA input</span>
-                    </div>
+                    </button>
                   </div>
                 )}
 
@@ -2922,319 +3084,372 @@ export default function Home() {
                     ＋ Add test case
                   </button>
                 )}
-
-                {!editingMode && (
-                  <div className="coverage-review-v2">
-                    <div className="coverage-review-v2-header">
-                      <div className="coverage-review-v2-title">
-                        <b>Coverage &amp; QA Review</b>
-                        <span>
-                          AI findings are informational and remain tied to the supplied requirements.
-                        </span>
-                      </div>
-
-                      <div className="coverage-review-v2-chips">
-                        {stats.uncovered > 0 && (
-                          <span className="coverage-review-v2-chip warning">
-                            ⚠ {stats.uncovered} uncovered
-                          </span>
-                        )}
-
-                        {stats.ambiguous > 0 && (
-                          <span className="coverage-review-v2-chip warning">
-                            ⚠ {stats.ambiguous} ambiguous
-                          </span>
-                        )}
-
-                        {stats.qa > 0 && (
-                          <span className="coverage-review-v2-chip">
-                            QA Input {stats.qa}
-                          </span>
-                        )}
-
-                        {stats.uncovered === 0 &&
-                          stats.ambiguous === 0 &&
-                          stats.qa === 0 && (
-                            <span className="coverage-review-v2-chip success">
-                              ✓ No outstanding QA flags
-                            </span>
-                          )}
-                      </div>
-                    </div>
-
-                    <div className="coverage-review-v2-grid">
-                      {stats.ambiguous > 0 && (
-                        <div className="coverage-review-v2-card">
-                          <div className="coverage-review-v2-card-title">
-                            Ambiguous requirements / QA questions
-                          </div>
-
-                          <div className="coverage-review-v2-list">
-                            {coverage.ambiguous_requirements.map(
-                              (item: string, index: number) => (
-                                <div
-                                  className="coverage-review-v2-item"
-                                  key={`${item}-${index}`}
-                                >
-                                  <span className="coverage-review-v2-number">
-                                    {index + 1}
-                                  </span>
-                                  <span>{item}</span>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {stats.qa > 0 && (
-                        <div className="coverage-review-v2-card qa-card">
-                          <div className="coverage-review-v2-card-title">
-                            QA input
-                          </div>
-
-                          <div className="coverage-review-v2-list">
-                            {qaInputItems.map(
-                              (item: string, index: number) => (
-                                <div
-                                  className="coverage-review-v2-item"
-                                  key={`${item}-${index}`}
-                                >
-                                  <span className="coverage-review-v2-number">
-                                    {index + 1}
-                                  </span>
-                                  <span>{item}</span>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {stats.uncovered > 0 && (
-                        <div className="coverage-review-v2-card full">
-                          <div className="coverage-review-v2-card-title">
-                            Uncovered requirements
-                          </div>
-
-                          <div className="coverage-review-v2-list">
-                            {coverage.uncovered_requirements.map(
-                              (item: string, index: number) => (
-                                <div
-                                  className="coverage-review-v2-item"
-                                  key={`${item}-${index}`}
-                                >
-                                  <span className="coverage-review-v2-number">
-                                    {index + 1}
-                                  </span>
-                                  <span>{item}</span>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </>
             )}
 
           </div>
         </section>
 
-        <section
-          className={`devops-card ${
-            devopsOpen ? "open" : ""
-          }`}
-        >
-          <button
-            className="devops-toggle"
-            onClick={() =>
-              setDevopsOpen(
-                (v) => !v
-              )
-            }
+        {coverageOpen && (
+          <div
+            className="coverage-modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setCoverageOpen(false);
+              }
+            }}
           >
-            <span>
-              <b>
-                Azure DevOps Integration
-              </b>
-
-              <small>
-                Publish reviewed cases
-                module-wise and
-                user-story-wise
-              </small>
-            </span>
-
-            <b>
-              {devopsOpen ? "−" : "+"}
-            </b>
-          </button>
-
-          {devopsOpen && (
-            <div className="devops-body">
-              <div className="devops-mode">
-                <label>Integration Mode</label>
-
-                <select
-                  value={devopsMode}
-                  onChange={(e) => {
-                    setDevopsMode(
-                      e.target.value as "demo" | "real"
-                    );
-                    setMockCreatedCount(0);
-                    setError("");
-                    setMessage("");
-                  }}
-                >
-                  <option value="demo">
-                    Demo / Mock DevOps
-                  </option>
-
-                  <option value="real">
-                    Real Azure DevOps
-                  </option>
-                </select>
-
-                <small>
-                  {devopsMode === "demo"
-                    ? "Test the complete DevOps workflow locally without an Azure DevOps account."
-                    : "Use your real Azure DevOps organization, project and PAT."}
-                </small>
-              </div>
-
-              <div className="devops-fields">
-                {devopsMode === "real" && (
-                  <>
-                    <input
-                      placeholder="Organization"
-                      value={devopsOrg}
-                      onChange={(e) =>
-                        setDevopsOrg(e.target.value)
-                      }
-                    />
-
-                    <input
-                      placeholder="Project"
-                      value={devopsProject}
-                      onChange={(e) =>
-                        setDevopsProject(e.target.value)
-                      }
-                    />
-
-                    <input
-                      placeholder="Personal Access Token"
-                      type="password"
-                      value={devopsToken}
-                      onChange={(e) =>
-                        setDevopsToken(e.target.value)
-                      }
-                    />
-                  </>
-                )}
-
-                <input
-                  placeholder="User Story ID (e.g. 12345)"
-                  value={storyId}
-                  onChange={(e) =>
-                    setStoryId(e.target.value)
-                  }
-                />
-
-                <input
-                  placeholder="Business Module (e.g. Login)"
-                  value={module}
-                  onChange={(e) =>
-                    setModule(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="devops-actions">
-                <button
-                  className="secondary"
-                  disabled={!result}
-                  onClick={exportAzureDevOpsCsv}
-                >
-                  Export Azure DevOps CSV
-                </button>
-
-                <button
-                  className="secondary"
-                  disabled={!result}
-                  onClick={exportAzureDevOpsXlsx}
-                >
-                  Export Azure DevOps XLSX
-                </button>
-
-                <button
-                  className="secondary"
-                  disabled={devopsBusy}
-                  onClick={testDevOps}
-                >
-                  {devopsBusy
-                    ? "Testing…"
-                    : devopsMode === "demo"
-                      ? "Test Demo Connection"
-                      : "Test Connection"}
-                </button>
-
-                <button
-                  className="primary small"
-                  disabled={devopsBusy || !result}
-                  onClick={sendDevOps}
-                >
-                  {devopsBusy
-                    ? "Creating…"
-                    : devopsMode === "demo"
-                      ? "Create Demo Test Cases"
-                      : "Send Reviewed Cases to DevOps"}
-                </button>
-              </div>
-
-              <div className="devops-import-note">
-                <b>Recommended for your POC:</b> Export CSV or XLSX, then use Azure DevOps
-                Test Plans → Test Suite → Import test cases. The exported file uses
-                Azure DevOps test-case import headers and keeps User Story ID and
-                Business Module as traceability columns.
-              </div>
-
-              {mockCreatedCount > 0 && devopsMode === "demo" && (
-                <div className="devops-demo-result">
-                  <b>Demo DevOps Test Results</b>
-
+            <section
+              className="coverage-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="coverage-review-title"
+            >
+              <div className="coverage-modal-header">
+                <div className="coverage-modal-title">
+                  <b id="coverage-review-title">Coverage &amp; QA Review</b>
                   <span>
-                    {mockCreatedCount} test cases were simulated successfully.
+                    AI findings are informational and remain tied to the supplied requirements.
                   </span>
+                </div>
 
-                  <div className="devops-demo-list">
-                    {cases.slice(0, 10).map((row, i) => (
-                      <div key={i}>
-                        <span>TC-{String(i + 1).padStart(4, "0")}</span>
-                        <span>{titleOf(row) || "Untitled test case"}</span>
-                        <span>Created ✓</span>
-                      </div>
-                    ))}
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={() => setCoverageOpen(false)}
+                  aria-label="Close Coverage and QA Review"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="coverage-modal-body">
+                <div className="coverage-review-v2">
+                  <div className="coverage-review-v2-header">
+                    <div className="coverage-review-v2-title">
+                      <b>Review findings</b>
+                      <span>
+                        Use these findings to clarify requirements and review coverage before publishing.
+                      </span>
+                    </div>
+
+                    <div className="coverage-review-v2-chips">
+                      {stats.uncovered > 0 && (
+                        <span className="coverage-review-v2-chip warning">
+                          ⚠ {stats.uncovered} uncovered
+                        </span>
+                      )}
+
+                      {stats.ambiguous > 0 && (
+                        <span className="coverage-review-v2-chip warning">
+                          ⚠ {stats.ambiguous} ambiguous
+                        </span>
+                      )}
+
+                      {stats.qa > 0 && (
+                        <span className="coverage-review-v2-chip">
+                          QA Input {stats.qa}
+                        </span>
+                      )}
+
+                      {stats.uncovered === 0 &&
+                        stats.ambiguous === 0 &&
+                        stats.qa === 0 && (
+                          <span className="coverage-review-v2-chip success">
+                            ✓ No outstanding QA flags
+                          </span>
+                        )}
+                    </div>
                   </div>
 
-                  {cases.length > 10 && (
-                    <small>
-                      Showing the first 10 of {cases.length} simulated test cases.
-                    </small>
-                  )}
-                </div>
-              )}
+                  <div className="coverage-review-v2-grid">
+                    {stats.ambiguous > 0 && (
+                      <div className="coverage-review-v2-card">
+                        <div className="coverage-review-v2-card-title">
+                          Ambiguous requirements / QA questions
+                        </div>
 
-              <small>
-                {devopsMode === "demo"
-                  ? "Demo mode does not contact Microsoft or store DevOps credentials."
-                  : "Credentials are sent only to your local backend for the request and are not stored by this standalone app."}
-              </small>
-            </div>
-          )}
-        </section>
+                        <div className="coverage-review-v2-list">
+                          {(coverage.ambiguous_requirements || []).map(
+                            (item: string, index: number) => (
+                              <div
+                                className="coverage-review-v2-item"
+                                key={`${item}-${index}`}
+                              >
+                                <span className="coverage-review-v2-number">
+                                  {index + 1}
+                                </span>
+                                <span>{item}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {stats.qa > 0 && (
+                      <div className="coverage-review-v2-card qa-card">
+                        <div className="coverage-review-v2-card-title">
+                          QA input
+                        </div>
+
+                        <div className="coverage-review-v2-list">
+                          {qaInputItems.map(
+                            (item: string, index: number) => (
+                              <div
+                                className="coverage-review-v2-item"
+                                key={`${item}-${index}`}
+                              >
+                                <span className="coverage-review-v2-number">
+                                  {index + 1}
+                                </span>
+                                <span>{item}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {stats.uncovered > 0 && (
+                      <div className="coverage-review-v2-card full">
+                        <div className="coverage-review-v2-card-title">
+                          Uncovered requirements
+                        </div>
+
+                        <div className="coverage-review-v2-list">
+                          {(coverage.uncovered_requirements || []).map(
+                            (item: string, index: number) => (
+                              <div
+                                className="coverage-review-v2-item"
+                                key={`${item}-${index}`}
+                              >
+                                <span className="coverage-review-v2-number">
+                                  {index + 1}
+                                </span>
+                                <span>{item}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {stats.uncovered === 0 &&
+                      stats.ambiguous === 0 &&
+                      stats.qa === 0 && (
+                        <div className="coverage-review-v2-card full">
+                          <div className="coverage-review-v2-empty">
+                            No outstanding coverage or QA review items.
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {devopsOpen && (
+          <div
+            className="devops-modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setDevopsOpen(false);
+              }
+            }}
+          >
+            <section
+              className="devops-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="devops-modal-title"
+            >
+              <div className="devops-modal-header">
+                <div className="devops-modal-title">
+                  <b id="devops-modal-title">Azure DevOps Integration</b>
+                  <span>
+                    Publish reviewed cases module-wise and user-story-wise.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={() => setDevopsOpen(false)}
+                  aria-label="Close Azure DevOps Integration"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="devops-modal-body">
+                <div className="devops-body">
+                  <div className="devops-mode">
+                    <label>Integration Mode</label>
+
+                    <select
+                      value={devopsMode}
+                      onChange={(e) => {
+                        setDevopsMode(
+                          e.target.value as "demo" | "real"
+                        );
+                        setMockCreatedCount(0);
+                        setError("");
+                        setMessage("");
+                      }}
+                    >
+                      <option value="demo">
+                        Demo / Mock DevOps
+                      </option>
+
+                      <option value="real">
+                        Real Azure DevOps
+                      </option>
+                    </select>
+
+                    <small>
+                      {devopsMode === "demo"
+                        ? "Test the complete DevOps workflow locally without an Azure DevOps account."
+                        : "Use your real Azure DevOps organization, project and PAT."}
+                    </small>
+                  </div>
+
+                  <div className="devops-fields">
+                    {devopsMode === "real" && (
+                      <>
+                        <input
+                          placeholder="Organization"
+                          value={devopsOrg}
+                          onChange={(e) =>
+                            setDevopsOrg(e.target.value)
+                          }
+                        />
+
+                        <input
+                          placeholder="Project"
+                          value={devopsProject}
+                          onChange={(e) =>
+                            setDevopsProject(e.target.value)
+                          }
+                        />
+
+                        <input
+                          placeholder="Personal Access Token"
+                          type="password"
+                          value={devopsToken}
+                          onChange={(e) =>
+                            setDevopsToken(e.target.value)
+                          }
+                        />
+                      </>
+                    )}
+
+                    <input
+                      placeholder="User Story ID (e.g. 12345)"
+                      value={storyId}
+                      onChange={(e) =>
+                        setStoryId(e.target.value)
+                      }
+                    />
+
+                    <input
+                      placeholder="Business Module (e.g. Login)"
+                      value={module}
+                      onChange={(e) =>
+                        setModule(e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="devops-actions">
+                    <button
+                      className="secondary"
+                      disabled={!result}
+                      onClick={exportAzureDevOpsCsv}
+                    >
+                      Export Azure DevOps CSV
+                    </button>
+
+                    <button
+                      className="secondary"
+                      disabled={!result}
+                      onClick={exportAzureDevOpsXlsx}
+                    >
+                      Export Azure DevOps XLSX
+                    </button>
+
+                    <button
+                      className="secondary"
+                      disabled={devopsBusy}
+                      onClick={testDevOps}
+                    >
+                      {devopsBusy
+                        ? "Testing…"
+                        : devopsMode === "demo"
+                          ? "Test Demo Connection"
+                          : "Test Connection"}
+                    </button>
+
+                    <button
+                      className="primary small"
+                      disabled={devopsBusy || !result}
+                      onClick={sendDevOps}
+                    >
+                      {devopsBusy
+                        ? "Creating…"
+                        : devopsMode === "demo"
+                          ? "Create Demo Test Cases"
+                          : "Send Reviewed Cases to DevOps"}
+                    </button>
+                  </div>
+
+                  <div className="devops-import-note">
+                    <b>Recommended for your POC:</b> Export CSV or XLSX, then use Azure DevOps
+                    Test Plans → Test Suite → Import test cases. The exported file uses
+                    Azure DevOps test-case import headers and keeps User Story ID and
+                    Business Module as traceability columns.
+                  </div>
+
+                  {mockCreatedCount > 0 && devopsMode === "demo" && (
+                    <div className="devops-demo-result">
+                      <b>Demo DevOps Test Results</b>
+
+                      <span>
+                        {mockCreatedCount} test cases were simulated successfully.
+                      </span>
+
+                      <div className="devops-demo-list">
+                        {cases.slice(0, 10).map((row, i) => (
+                          <div key={i}>
+                            <span>TC-{String(i + 1).padStart(4, "0")}</span>
+                            <span>{titleOf(row) || "Untitled test case"}</span>
+                            <span>Created ✓</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {cases.length > 10 && (
+                        <small>
+                          Showing the first 10 of {cases.length} simulated test cases.
+                        </small>
+                      )}
+                    </div>
+                  )}
+
+                  <small>
+                    {devopsMode === "demo"
+                      ? "Demo mode does not contact Microsoft or store DevOps credentials."
+                      : "Credentials are sent only to your local backend for the request and are not stored by this standalone app."}
+                  </small>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
 
         {(message || error) && (
           <div

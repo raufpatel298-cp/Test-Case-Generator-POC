@@ -61,6 +61,38 @@ export default function LoginPage() {
 
   return (
     <main className="auth-page">
+      <style>{`
+        .auth-forgot {
+          justify-self: end;
+          margin-top: -7px;
+          border: 0;
+          background: transparent;
+          padding: 0;
+        }
+
+        .auth-forgot button {
+          border: 0;
+          padding: 0;
+          margin: 0;
+          background: transparent;
+          color: var(--primary);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 700;
+          text-decoration: none;
+          cursor: pointer;
+        }
+
+        .auth-forgot button:hover {
+          text-decoration: underline;
+        }
+
+        .auth-forgot button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      `}</style>
+
       <section className="auth-card">
         <div className="auth-brand">
           <div className="auth-brand-mark">✦</div>

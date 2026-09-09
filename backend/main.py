@@ -404,6 +404,10 @@ async def extract_supporting_inputs(
 def ado_url(config: DevOpsConfig, path: str) -> str:
     org = config.organization.strip().strip("/")
     project = config.project.strip().strip("/")
+
+    if path.startswith("_apis/projects"):
+        return f"https://dev.azure.com/{org}/{path}"
+
     return f"https://dev.azure.com/{org}/{project}/{path}"
 
 async def ado_request(config: DevOpsConfig, method: str, url: str, **kwargs):

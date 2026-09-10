@@ -187,6 +187,23 @@ function htmlToPlainText(value: string) {
     .trim();
 }
 
+// Editing helper: unlike htmlToPlainText(), this intentionally does not trim
+// or collapse whitespace. Controlled textareas must preserve a user's spaces
+// while they are typing (including a trailing space before the next word).
+function htmlToPlainTextForEditing(value: string) {
+  if (!value) return "";
+
+  if (typeof window === "undefined") {
+    return value
+      .replace(/<[^>]*>/g, "")
+      .replace(/\u00a0/g, " ");
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(value, "text/html");
+  return (doc.body.textContent || "").replace(/\u00a0/g, " ");
+}
+
 function normalizeRichHtml(value: string) {
   return value
     .replace(/\r?\n/g, "")
@@ -207,6 +224,18 @@ function stripLeadingNumber(value: string) {
   return normalized
     .replace(/^\s*(?:step\s*)?\d+[.)-]?\s*/i, "")
     .trim();
+}
+
+// Editing-only helper: remove a generated step number without trimming
+// the user's actual text. This is important because getSteps/getExpectedResults
+// are called again after every keystroke in controlled textareas.
+function stripLeadingNumberForEditing(value: string) {
+  const text = htmlToPlainTextForEditing(value);
+
+  return text.replace(
+    /^(?:step\s*)?\d+[.)-][ \t]*/i,
+    ""
+  );
 }
 
 function isRichHtml(value: string) {
@@ -335,14 +364,37 @@ export default function Home() {
   const [template, setTemplate] = useState<Template>(
     PRESETS.standard
   );
+  const [templateSavePromptOpen, setTemplateSavePromptOpen] = useState(false);
+  const [hasProjectTemplate, setHasProjectTemplate] = useState(false);
+  const [importedTemplateReady, setImportedTemplateReady] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [result, setResult] = useState<Result | null>(null);
+  const inputCardRef = useRef<HTMLDivElement | null>(null);
+  const [inputCardHeight, setInputCardHeight] = useState(0);
   const [editingMode, setEditingMode] = useState<"single" | "all" | null>(null);
   const [editingCaseIndex, setEditingCaseIndex] = useState<number | null>(null);
   const [editSnapshot, setEditSnapshot] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const element = inputCardRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+
+    const updateHeight = () => {
+      setInputCardHeight(
+        Math.ceil(element.getBoundingClientRect().height)
+      );
+    };
+
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [result, templateMode]);
 
   // Success/info messages are temporary UI feedback.
   // They automatically disappear after a short period so they do not
@@ -371,11 +423,10 @@ export default function Home() {
   const [devopsOrg, setDevopsOrg] = useState("");
   const [devopsProject, setDevopsProject] = useState("");
   const [devopsToken, setDevopsToken] = useState("");
-  const [devopsMode, setDevopsMode] = useState<"demo" | "real">("demo");
-  const [mockCreatedCount, setMockCreatedCount] = useState(0);
   const [storyId, setStoryId] = useState("");
   const [module, setModule] = useState("");
-  const [devopsBusy, setDevopsBusy] = useState(false);
+  const [testingDevOps, setTestingDevOps] = useState(false);
+  const [sendingDevOps, setSendingDevOps] = useState(false);
 
   const requirementFile = useRef<HTMLInputElement>(null);
   const supportingFile = useRef<HTMLInputElement>(null);
@@ -425,13 +476,20 @@ export default function Home() {
   }, [router]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("tcg-template");
+    const saved =
+      localStorage.getItem("tcg-project-template") ||
+      // Backward compatibility: templates saved by the previous POC version
+      // remain available as Project Template.
+      localStorage.getItem("tcg-template");
 
     if (saved) {
       try {
         const t = JSON.parse(saved) as Template;
-        setTemplate(t);
-        setTemplateMode("saved");
+        if (t && Array.isArray(t.columns) && t.columns.length) {
+          setTemplate(t);
+          setTemplateMode("project");
+          setHasProjectTemplate(true);
+        }
       } catch {}
     }
 
@@ -633,22 +691,111 @@ export default function Home() {
       );
     }
 
+    // Import Template is intentionally temporary until the user explicitly
+    // chooses whether to save it as the Project Template.
     setTemplate(data.template);
-    setTemplateMode("uploaded");
-
-    localStorage.setItem(
-      "tcg-template",
-      JSON.stringify(data.template)
-    );
+    setTemplateMode("import");
+    setImportedTemplateReady(true);
+    setTemplateSavePromptOpen(true);
 
     setMessage(
-      `Template ready: ${
+      `Template validated: ${
         data.template.columns?.length || 0
       } columns`
     );
   }
 
+  function saveImportedTemplateAsProject() {
+    localStorage.setItem(
+      "tcg-project-template",
+      JSON.stringify(template)
+    );
+    setHasProjectTemplate(true);
+
+    // Remove the legacy key so there is only one authoritative saved
+    // Project Template going forward.
+    localStorage.removeItem("tcg-template");
+
+    setTemplateMode("project");
+    setTemplateSavePromptOpen(false);
+    setMessage("Template saved as Project Template.");
+  }
+
+  function useImportedTemplateOnly() {
+    // The template has already been validated by /api/templates/analyze.
+    // "No" means do not persist it, not "do not use it".
+    setImportedTemplateReady(true);
+    setTemplateMode("import");
+    setTemplateSavePromptOpen(false);
+    setMessage("Imported template will be used only for this generation.");
+  }
+
+  function selectTemplateMode(value: string) {
+    setTemplateMode(value);
+
+    if (value !== "import") {
+      setImportedTemplateReady(false);
+    }
+
+    if (PRESETS[value]) {
+      setTemplate(PRESETS[value]);
+      return;
+    }
+
+    if (value === "project") {
+      const saved =
+        localStorage.getItem("tcg-project-template") ||
+        localStorage.getItem("tcg-template");
+
+      if (!saved) {
+        setError("No Project Template has been saved yet.");
+        setTemplateMode("standard");
+        setTemplate(PRESETS.standard);
+        return;
+      }
+
+      try {
+        const savedTemplate = JSON.parse(saved) as Template;
+
+        if (
+          !savedTemplate ||
+          !Array.isArray(savedTemplate.columns) ||
+          !savedTemplate.columns.length
+        ) {
+          throw new Error("Saved Project Template is invalid.");
+        }
+
+        setTemplate(savedTemplate);
+        setError("");
+        setMessage("Project Template loaded.");
+      } catch (e) {
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Could not load the saved Project Template."
+        );
+        setTemplateMode("standard");
+        setTemplate(PRESETS.standard);
+      }
+
+      return;
+    }
+
+    if (value === "import") {
+      // Import requires a new file. The upload button becomes visible below.
+      setError("");
+      return;
+    }
+  }
+
   async function generate() {
+    if (templateMode === "import" && !importedTemplateReady) {
+      setError(
+        "Please upload and validate a template before generating test cases."
+      );
+      return;
+    }
+
     const primaryRequirement = htmlToPlainText(description).trim();
 
     if (!primaryRequirement) {
@@ -938,11 +1085,48 @@ export default function Home() {
     );
   }
 
+  function isBddTemplate() {
+    return (
+      templateMode === "bdd" ||
+      String(template.format || "").toLowerCase() === "bdd"
+    );
+  }
+
+  function getBddClause(row: CaseRow, columnName: string) {
+    const column = getSemanticColumn([columnName], "");
+    return column ? String(valueFrom(row, columnName) ?? "") : "";
+  }
+
+  function setBddClause(
+    row: CaseRow,
+    columnName: string,
+    value: string
+  ): CaseRow {
+    const column = getSemanticColumn([columnName], columnName);
+    return setValue(row, column, value);
+  }
+
   function getSteps(row: CaseRow, preserveEmpty = false) {
     const column = getSemanticColumn(
       ["Test Steps", "Steps", "Step", "Actions"],
       ""
     );
+
+    // BDD does not have a native "Steps" column. Treat Given and When as
+    // the executable setup/action steps so the common Steps editor remains
+    // usable without changing the BDD template itself.
+    if (!column && isBddTemplate()) {
+      const given = getBddClause(row, "Given");
+      const when = getBddClause(row, "When");
+      const values = [
+        ...given.split(/\r?\n/),
+        ...when.split(/\r?\n/),
+      ];
+
+      return preserveEmpty
+        ? (values.length ? values : [""])
+        : values.filter((value) => value.trim());
+    }
 
     const value = column
       ? String(valueFrom(row, column) ?? "")
@@ -951,7 +1135,11 @@ export default function Home() {
     const values = value
       ? value
           .split(/\r?\n|\s*\|\s*/)
-          .map((step) => stripLeadingNumber(step))
+          .map((step) =>
+            preserveEmpty
+              ? stripLeadingNumberForEditing(step)
+              : stripLeadingNumber(step)
+          )
       : [];
 
     return preserveEmpty ? values : values.filter(Boolean);
@@ -969,6 +1157,18 @@ export default function Home() {
       ""
     );
 
+    // BDD uses Then as the expected outcome. Expose it through the common
+    // Expected Results editor so add/edit/remove works consistently.
+    if (!column && isBddTemplate()) {
+      const thenValue = getBddClause(row, "Then");
+      const values = thenValue
+        .split(/\r?\n/);
+
+      return preserveEmpty
+        ? (values.length ? values : [""])
+        : values.filter((value) => value.trim());
+    }
+
     const value = column
       ? String(valueFrom(row, column) ?? "")
       : "";
@@ -976,7 +1176,11 @@ export default function Home() {
     const values = value
       ? value
           .split(/\r?\n|\s*\|\s*/)
-          .map((item) => stripLeadingNumber(item))
+          .map((item) =>
+            preserveEmpty
+              ? stripLeadingNumberForEditing(item)
+              : stripLeadingNumber(item)
+          )
       : [];
 
     return preserveEmpty ? values : values.filter(Boolean);
@@ -987,11 +1191,24 @@ export default function Home() {
 
     const column = getSemanticColumn(
       ["Test Steps", "Steps", "Step", "Actions"],
-      "Test Steps"
+      ""
     );
 
     const next = [...result.test_cases];
-    next[index] = setValue(next[index], column, steps.join("\n"));
+
+    if (!column && isBddTemplate()) {
+      // Keep BDD semantics: first step is Given; any additional executable
+      // steps are represented as newline-separated When content.
+      let updated = setBddClause(next[index], "Given", steps[0] || "");
+      updated = setBddClause(
+        updated,
+        "When",
+        steps.slice(1).join("\n")
+      );
+      next[index] = updated;
+    } else {
+      next[index] = setValue(next[index], column || "Test Steps", steps.join("\n"));
+    }
 
     setResult({
       ...result,
@@ -1013,15 +1230,24 @@ export default function Home() {
         "Expected",
         "Results",
       ],
-      "Expected Result"
+      ""
     );
 
     const next = [...result.test_cases];
-    next[index] = setValue(
-      next[index],
-      column,
-      expected.join("\n")
-    );
+
+    if (!column && isBddTemplate()) {
+      next[index] = setBddClause(
+        next[index],
+        "Then",
+        expected.join("\n")
+      );
+    } else {
+      next[index] = setValue(
+        next[index],
+        column || "Expected Result",
+        expected.join("\n")
+      );
+    }
 
     setResult({
       ...result,
@@ -1039,7 +1265,7 @@ export default function Home() {
 
       const stepColumn = getSemanticColumn(
         ["Test Steps", "Steps", "Step", "Actions"],
-        "Test Steps"
+        ""
       );
 
       const expectedColumn = getSemanticColumn(
@@ -1050,22 +1276,36 @@ export default function Home() {
           "Expected",
           "Results",
         ],
-        "Expected Result"
+        ""
       );
 
       const next = [...current.test_cases];
+      let updated = next[index];
 
-      let updated = setValue(
-        next[index],
-        stepColumn,
-        steps.join("\n")
-      );
+      if (!stepColumn && isBddTemplate()) {
+        updated = setBddClause(updated, "Given", steps[0] || "");
+        updated = setBddClause(
+          updated,
+          "When",
+          steps.slice(1).join("\n")
+        );
+      } else {
+        updated = setValue(
+          updated,
+          stepColumn || "Test Steps",
+          steps.join("\n")
+        );
+      }
 
-      updated = setValue(
-        updated,
-        expectedColumn,
-        expected.join("\n")
-      );
+      if (!expectedColumn && isBddTemplate()) {
+        updated = setBddClause(updated, "Then", expected.join("\n"));
+      } else {
+        updated = setValue(
+          updated,
+          expectedColumn || "Expected Result",
+          expected.join("\n")
+        );
+      }
 
       next[index] = updated;
 
@@ -1086,7 +1326,7 @@ export default function Home() {
 
       const stepColumn = getSemanticColumn(
         ["Test Steps", "Steps", "Step", "Actions"],
-        "Test Steps"
+        ""
       );
 
       const expectedColumn = getSemanticColumn(
@@ -1097,20 +1337,40 @@ export default function Home() {
           "Expected",
           "Results",
         ],
-        "Expected Result"
+        ""
       );
 
-      let updated = setValue(
-        row,
-        stepColumn,
-        [...steps, ""].join("\n")
-      );
+      let updated = row;
 
-      updated = setValue(
-        updated,
-        expectedColumn,
-        [...expected, ""].join("\n")
-      );
+      if (!stepColumn && isBddTemplate()) {
+        // Preserve Given and append the new editable step to When.
+        updated = setBddClause(updated, "Given", steps[0] || "");
+        updated = setBddClause(
+          updated,
+          "When",
+          [...steps.slice(1), ""].join("\n")
+        );
+      } else {
+        updated = setValue(
+          updated,
+          stepColumn || "Test Steps",
+          [...steps, ""].join("\n")
+        );
+      }
+
+      if (!expectedColumn && isBddTemplate()) {
+        updated = setBddClause(
+          updated,
+          "Then",
+          [...expected, ""].join("\n")
+        );
+      } else {
+        updated = setValue(
+          updated,
+          expectedColumn || "Expected Result",
+          [...expected, ""].join("\n")
+        );
+      }
 
       const next = [...current.test_cases];
       next[index] = updated;
@@ -1137,15 +1397,27 @@ export default function Home() {
 
       const stepColumn = getSemanticColumn(
         ["Test Steps", "Steps", "Step", "Actions"],
-        "Test Steps"
+        ""
       );
 
+      let updated = row;
+      if (!stepColumn && isBddTemplate()) {
+        updated = setBddClause(updated, "Given", steps[0] || "");
+        updated = setBddClause(
+          updated,
+          "When",
+          steps.slice(1).join("\n")
+        );
+      } else {
+        updated = setValue(
+          updated,
+          stepColumn || "Test Steps",
+          steps.join("\n")
+        );
+      }
+
       const next = [...current.test_cases];
-      next[index] = setValue(
-        row,
-        stepColumn,
-        steps.join("\n")
-      );
+      next[index] = updated;
 
       return {
         ...current,
@@ -1172,15 +1444,17 @@ export default function Home() {
           "Expected",
           "Results",
         ],
-        "Expected Result"
+        ""
       );
 
       const next = [...current.test_cases];
-      next[index] = setValue(
-        row,
-        expectedColumn,
-        expected.join("\n")
-      );
+      next[index] = !expectedColumn && isBddTemplate()
+        ? setBddClause(row, "Then", expected.join("\n"))
+        : setValue(
+            row,
+            expectedColumn || "Expected Result",
+            expected.join("\n")
+          );
 
       return {
         ...current,
@@ -1207,7 +1481,7 @@ export default function Home() {
 
       const stepColumn = getSemanticColumn(
         ["Test Steps", "Steps", "Step", "Actions"],
-        "Test Steps"
+        ""
       );
 
       const expectedColumn = getSemanticColumn(
@@ -1218,20 +1492,35 @@ export default function Home() {
           "Expected",
           "Results",
         ],
-        "Expected Result"
+        ""
       );
 
-      let updated = setValue(
-        row,
-        stepColumn,
-        steps.join("\n")
-      );
+      let updated = row;
 
-      updated = setValue(
-        updated,
-        expectedColumn,
-        expected.join("\n")
-      );
+      if (!stepColumn && isBddTemplate()) {
+        updated = setBddClause(updated, "Given", steps[0] || "");
+        updated = setBddClause(
+          updated,
+          "When",
+          steps.slice(1).join("\n")
+        );
+      } else {
+        updated = setValue(
+          updated,
+          stepColumn || "Test Steps",
+          steps.join("\n")
+        );
+      }
+
+      if (!expectedColumn && isBddTemplate()) {
+        updated = setBddClause(updated, "Then", expected.join("\n"));
+      } else {
+        updated = setValue(
+          updated,
+          expectedColumn || "Expected Result",
+          expected.join("\n")
+        );
+      }
 
       const next = [...current.test_cases];
       next[index] = updated;
@@ -1259,7 +1548,7 @@ export default function Home() {
 
       const stepColumn = getSemanticColumn(
         ["Test Steps", "Steps", "Step", "Actions"],
-        "Test Steps"
+        ""
       );
 
       const expectedColumn = getSemanticColumn(
@@ -1270,20 +1559,35 @@ export default function Home() {
           "Expected",
           "Results",
         ],
-        "Expected Result"
+        ""
       );
 
-      let updated = setValue(
-        row,
-        stepColumn,
-        steps.join("\n")
-      );
+      let updated = row;
 
-      updated = setValue(
-        updated,
-        expectedColumn,
-        expected.join("\n")
-      );
+      if (!stepColumn && isBddTemplate()) {
+        updated = setBddClause(updated, "Given", steps[0] || "");
+        updated = setBddClause(
+          updated,
+          "When",
+          steps.slice(1).join("\n")
+        );
+      } else {
+        updated = setValue(
+          updated,
+          stepColumn || "Test Steps",
+          steps.join("\n")
+        );
+      }
+
+      if (!expectedColumn && isBddTemplate()) {
+        updated = setBddClause(updated, "Then", expected.join("\n"));
+      } else {
+        updated = setValue(
+          updated,
+          expectedColumn || "Expected Result",
+          expected.join("\n")
+        );
+      }
 
       const next = [...current.test_cases];
       next[index] = updated;
@@ -1430,97 +1734,6 @@ export default function Home() {
     });
 
     return rows;
-  }
-
-  function exportAzureDevOpsXlsx() {
-    const rows = getAzureDevOpsImportRows();
-
-    if (!rows.length) {
-      setError("Generate test cases before exporting for Azure DevOps.");
-      return;
-    }
-
-    const ws = XLSX.utils.json_to_sheet(rows, {
-      header: [
-        "ID",
-        "Work Item Type",
-        "Title",
-        "Test Step",
-        "Step Action",
-        "Step Expected",
-        "Area Path",
-        "Assigned To",
-        "State",
-        "User Story ID",
-        "Business Module",
-      ],
-    });
-
-    const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(
-      wb,
-      ws,
-      "Azure DevOps Test Cases"
-    );
-
-    XLSX.writeFile(
-      wb,
-      `${(
-        title || "Azure-DevOps-Test-Cases"
-      ).replace(/[^a-z0-9]+/gi, "-")}.xlsx`
-    );
-
-    setMessage(
-      "Azure DevOps XLSX export created successfully."
-    );
-  }
-
-  function exportAzureDevOpsCsv() {
-    const rows = getAzureDevOpsImportRows();
-
-    if (!rows.length) {
-      setError("Generate test cases before exporting for Azure DevOps.");
-      return;
-    }
-
-    const ws = XLSX.utils.json_to_sheet(rows, {
-      header: [
-        "ID",
-        "Work Item Type",
-        "Title",
-        "Test Step",
-        "Step Action",
-        "Step Expected",
-        "Area Path",
-        "Assigned To",
-        "State",
-        "User Story ID",
-        "Business Module",
-      ],
-    });
-
-    const csv = XLSX.utils.sheet_to_csv(ws);
-    const blob = new Blob(["\uFEFF", csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `${(
-      title || "Azure-DevOps-Test-Cases"
-    ).replace(/[^a-z0-9]+/gi, "-")}.csv`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    setMessage(
-      "Azure DevOps CSV export created successfully."
-    );
   }
 
   function exportExcel() {
@@ -1684,20 +1897,24 @@ export default function Home() {
     );
   }
 
+  function closeDevOpsModal() {
+    setDevopsOpen(false);
+    setDevopsOrg("");
+    setDevopsProject("");
+    setDevopsToken("");
+    setStoryId("");
+    setModule("");
+    setTestingDevOps(false);
+    setSendingDevOps(false);
+    setError("");
+    setMessage("");
+  }
+
   async function testDevOps() {
-    setDevopsBusy(true);
+    setTestingDevOps(true);
     setError("");
 
     try {
-      if (devopsMode === "demo") {
-        await new Promise((resolve) => setTimeout(resolve, 700));
-
-        setMessage(
-          "Demo DevOps connection successful. No Azure DevOps account is required."
-        );
-        return;
-      }
-
       const r = await fetch(
         `${API}/api/devops/test-connection`,
         {
@@ -1727,27 +1944,17 @@ export default function Home() {
           : "DevOps connection failed."
       );
     } finally {
-      setDevopsBusy(false);
+      setTestingDevOps(false);
     }
   }
 
   async function sendDevOps() {
     if (!result || !cases.length) return;
 
-    setDevopsBusy(true);
+    setSendingDevOps(true);
     setError("");
 
     try {
-      if (devopsMode === "demo") {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        setMockCreatedCount(cases.length);
-        setMessage(
-          `Demo DevOps: created ${cases.length} test cases successfully.`
-        );
-        return;
-      }
-
       const r = await fetch(
         `${API}/api/devops/create-test-cases`,
         {
@@ -1788,7 +1995,7 @@ export default function Home() {
           : "DevOps publishing failed."
       );
     } finally {
-      setDevopsBusy(false);
+      setSendingDevOps(false);
     }
   }
 
@@ -1824,8 +2031,9 @@ export default function Home() {
   return (
     <div className="app-shell">
         <style>{`
-          /* POC UI cleanup: keep the workspace naturally sized and prevent
-             the input/sidebar area from becoming an independent scroll pane. */
+          /* Keep both workspace cards aligned to the same row height on desktop.
+             The generated-results pane keeps its own vertical scroll so a large
+             result set does not make the input card a different height. */
           .main {
             overflow-x: hidden !important;
           }
@@ -1836,38 +2044,91 @@ export default function Home() {
 
           .workspace {
             min-height: 0 !important;
+            align-items: stretch !important;
           }
 
+          .workspace > .card {
+            min-width: 0;
+            box-sizing: border-box;
+            align-self: stretch;
+          }
+
+          .workspace.workspace-generated {
+            align-items: stretch !important;
+          }
+
+          /* The left card owns the row height. Keep the grid row from being
+             enlarged by the generated cases, then give the right card the
+             exact measured left-card height. Its test-case list is the only
+             scrolling area. */
           .workspace.workspace-generated {
             align-items: start !important;
           }
 
-          .workspace.workspace-generated .input-card {
-            position: sticky;
-            top: 86px;
+          .workspace.workspace-generated .input-card,
+          .workspace.workspace-generated .result-card {
+            box-sizing: border-box;
+            min-width: 0;
+            min-height: 0;
             align-self: start;
           }
 
+          .workspace.workspace-generated .input-card {
+            position: static;
+            overflow: visible;
+            height: auto;
+            max-height: none;
+            overscroll-behavior: auto;
+            scrollbar-gutter: auto;
+          }
+
           .workspace.workspace-generated .result-card {
-            max-height: calc(100vh - 108px);
-            overflow-y: auto !important;
+            display: flex;
+            flex-direction: column;
+            height: var(--input-card-height, auto);
+            max-height: var(--input-card-height, none);
+            overflow: hidden !important;
+            overscroll-behavior: auto;
+          }
+
+          /* Only the generated test-case list scrolls. The header and metrics
+             remain visible at the top of the right card. */
+          .workspace.workspace-generated .result-card .tc-list {
+            min-height: 0;
+            height: 0;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
             overscroll-behavior: contain;
             scrollbar-gutter: stable;
-            align-self: start;
           }
 
           .input-card::before {
             display: none !important;
           }
 
-          .coverage-metric-button {
+          /* Keep clickable metric cards visually identical to the two
+             non-clickable metric cards. This is UI-only; the click behavior
+             remains unchanged. */
+          .metrics .coverage-metric-button {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fff !important;
+            color: inherit;
             cursor: pointer;
-            border: 0;
             text-align: left;
             font: inherit;
+            appearance: none;
+            -webkit-appearance: none;
           }
 
-          .coverage-metric-button:hover {
+          .metrics .coverage-metric-button:hover {
             border-color: #d8cffc;
             box-shadow: 0 4px 12px rgba(99, 53, 217, 0.08);
             transform: translateY(-1px);
@@ -1973,6 +2234,76 @@ export default function Home() {
             background: #fbfbfe;
           }
 
+          .devops-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          }
+
+          .devops-mode {
+            display: flex;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 2px 0 0;
+          }
+
+          .devops-mode label {
+            flex: 0 0 auto;
+            margin-top: 2px;
+            color: #24305f;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.4;
+            white-space: nowrap;
+          }
+
+          .devops-mode small {
+            max-width: none;
+            color: #66708f;
+            font-size: 12px;
+            line-height: 1.45;
+            white-space: nowrap;
+          }
+
+          .devops-fields {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+          }
+
+          .devops-fields input {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            min-height: 42px;
+          }
+
+          .devops-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+
+          .devops-actions button {
+            margin: 0;
+          }
+
+          .devops-import-note {
+            margin: -2px 0 0;
+            color: #17204b;
+            font-size: 12px;
+            line-height: 1.5;
+          }
+
+          .devops-body > small {
+            margin-top: -8px;
+            color: #7b84a0;
+            font-size: 10px;
+            line-height: 1.45;
+          }
+
+
           @media (max-width: 820px) {
             .coverage-modal-backdrop,
             .devops-modal-backdrop {
@@ -1987,12 +2318,43 @@ export default function Home() {
               border-radius: 16px 16px 10px 10px;
             }
 
+            .devops-mode {
+              gap: 10px;
+            }
+
+            .devops-fields {
+              grid-template-columns: 1fr;
+            }
+
+            .devops-actions {
+              align-items: stretch;
+            }
+
+            .devops-actions button {
+              width: 100%;
+            }
+
+            .workspace.workspace-generated .input-card,
+            .workspace.workspace-generated .result-card {
+              height: auto;
+              max-height: none;
+              align-self: stretch;
+            }
+
             .workspace.workspace-generated .input-card {
               position: static;
+              overflow: visible;
             }
 
             .workspace.workspace-generated .result-card {
+              display: block;
+              overflow: visible !important;
+            }
+
+            .workspace.workspace-generated .result-card .tc-list {
+              height: auto;
               max-height: none;
+              overflow: visible;
             }
           }
 
@@ -2243,8 +2605,13 @@ export default function Home() {
           className={`workspace ${
             result && cases.length > 1 ? "workspace-generated" : ""
           }`}
+          style={
+            inputCardHeight > 0
+              ? ({ "--input-card-height": `${inputCardHeight}px` } as React.CSSProperties)
+              : undefined
+          }
         >
-          <div className="card input-card">
+          <div ref={inputCardRef} className="card input-card">
             <div className="field">
               <label>
                 User Story Title
@@ -2392,18 +2759,9 @@ export default function Home() {
               <div className="template-row">
                 <select
                   value={templateMode}
-                  onChange={(e) => {
-                    const v =
-                      e.target.value;
-
-                    setTemplateMode(v);
-
-                    if (PRESETS[v]) {
-                      setTemplate(
-                        PRESETS[v]
-                      );
-                    }
-                  }}
+                  onChange={(e) =>
+                    selectTemplateMode(e.target.value)
+                  }
                 >
                   <option value="standard">
                     Standard QA
@@ -2421,37 +2779,48 @@ export default function Home() {
                     Minimal QA
                   </option>
 
-                  <option value="saved">
-                    Saved project template
-                  </option>
+                  {hasProjectTemplate && (
+                    <option value="project">
+                      Project Template
+                    </option>
+                  )}
 
-                  <option value="uploaded">
-                    Uploaded template
+                  <option value="import">
+                    Import Template
                   </option>
                 </select>
 
-                <button
-                  className="secondary"
-                  onClick={() =>
-                    templateFile.current?.click()
-                  }
-                >
-                  Upload Template
-                </button>
+                {templateMode === "import" && (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() =>
+                      templateFile.current?.click()
+                    }
+                  >
+                    Upload Template
+                  </button>
+                )}
 
                 <input
                   ref={templateFile}
                   type="file"
                   hidden
                   accept=".xlsx,.csv"
-                  onChange={(e) =>
-                    e.target.files?.[0] &&
-                    uploadTemplate(
-                      e.target.files[0]
-                    ).catch((err) =>
-                      setError(err.message)
-                    )
-                  }
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.currentTarget.value = "";
+
+                    if (!file) return;
+
+                    uploadTemplate(file).catch((err) =>
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Could not analyze template."
+                      )
+                    );
+                  }}
                 />
               </div>
 
@@ -2755,7 +3124,7 @@ export default function Home() {
                               {isCaseEditing ? (
                                 <textarea
                                   className="tc-edit-textarea"
-                                  value={htmlToPlainText(description)}
+                                  value={htmlToPlainTextForEditing(description)}
                                   onChange={(e) =>
                                     editCell(
                                       i,
@@ -2795,7 +3164,7 @@ export default function Home() {
                               {isCaseEditing ? (
                                 <textarea
                                   className="tc-edit-textarea"
-                                  value={htmlToPlainText(preconditions)}
+                                  value={htmlToPlainTextForEditing(preconditions)}
                                   onChange={(e) =>
                                     editCell(
                                       i,
@@ -2845,7 +3214,7 @@ export default function Home() {
 
                                       <textarea
                                         className="tc-edit-textarea tc-edit-repeat-textarea"
-                                        value={htmlToPlainText(step)}
+                                        value={isBddTemplate() ? step : htmlToPlainTextForEditing(step)}
                                         onChange={(e) =>
                                           updateStep(
                                             i,
@@ -2929,7 +3298,7 @@ export default function Home() {
 
                                       <textarea
                                         className="tc-edit-textarea tc-edit-repeat-textarea"
-                                        value={htmlToPlainText(item)}
+                                        value={isBddTemplate() ? item : htmlToPlainTextForEditing(item)}
                                         onChange={(e) =>
                                           updateExpected(
                                             i,
@@ -3256,11 +3625,6 @@ export default function Home() {
           <div
             className="devops-modal-backdrop"
             role="presentation"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) {
-                setDevopsOpen(false);
-              }
-            }}
           >
             <section
               className="devops-modal"
@@ -3279,7 +3643,7 @@ export default function Home() {
                 <button
                   type="button"
                   className="modal-close"
-                  onClick={() => setDevopsOpen(false)}
+                  onClick={closeDevOpsModal}
                   aria-label="Close Azure DevOps Integration"
                 >
                   ×
@@ -3289,64 +3653,38 @@ export default function Home() {
               <div className="devops-modal-body">
                 <div className="devops-body">
                   <div className="devops-mode">
-                    <label>Integration Mode</label>
-
-                    <select
-                      value={devopsMode}
-                      onChange={(e) => {
-                        setDevopsMode(
-                          e.target.value as "demo" | "real"
-                        );
-                        setMockCreatedCount(0);
-                        setError("");
-                        setMessage("");
-                      }}
-                    >
-                      <option value="demo">
-                        Demo / Mock DevOps
-                      </option>
-
-                      <option value="real">
-                        Real Azure DevOps
-                      </option>
-                    </select>
+                    <label>Azure DevOps</label>
 
                     <small>
-                      {devopsMode === "demo"
-                        ? "Test the complete DevOps workflow locally without an Azure DevOps account."
-                        : "Use your real Azure DevOps organization, project and PAT."}
+                      Use your Azure DevOps organization, project and personal access token.
                     </small>
                   </div>
 
                   <div className="devops-fields">
-                    {devopsMode === "real" && (
-                      <>
-                        <input
-                          placeholder="Organization"
-                          value={devopsOrg}
-                          onChange={(e) =>
-                            setDevopsOrg(e.target.value)
-                          }
-                        />
+                    <input
+                      placeholder="Organization"
+                      value={devopsOrg}
+                      onChange={(e) =>
+                        setDevopsOrg(e.target.value)
+                      }
+                    />
 
-                        <input
-                          placeholder="Project"
-                          value={devopsProject}
-                          onChange={(e) =>
-                            setDevopsProject(e.target.value)
-                          }
-                        />
+                    <input
+                      placeholder="Project"
+                      value={devopsProject}
+                      onChange={(e) =>
+                        setDevopsProject(e.target.value)
+                      }
+                    />
 
-                        <input
-                          placeholder="Personal Access Token"
-                          type="password"
-                          value={devopsToken}
-                          onChange={(e) =>
-                            setDevopsToken(e.target.value)
-                          }
-                        />
-                      </>
-                    )}
+                    <input
+                      placeholder="Personal Access Token"
+                      type="password"
+                      value={devopsToken}
+                      onChange={(e) =>
+                        setDevopsToken(e.target.value)
+                      }
+                    />
 
                     <input
                       placeholder="User Story ID (e.g. 12345)"
@@ -3368,84 +3706,100 @@ export default function Home() {
                   <div className="devops-actions">
                     <button
                       className="secondary"
-                      disabled={!result}
-                      onClick={exportAzureDevOpsCsv}
-                    >
-                      Export Azure DevOps CSV
-                    </button>
-
-                    <button
-                      className="secondary"
-                      disabled={!result}
-                      onClick={exportAzureDevOpsXlsx}
-                    >
-                      Export Azure DevOps XLSX
-                    </button>
-
-                    <button
-                      className="secondary"
-                      disabled={devopsBusy}
+                      disabled={testingDevOps}
                       onClick={testDevOps}
                     >
-                      {devopsBusy
+                      {testingDevOps
                         ? "Testing…"
-                        : devopsMode === "demo"
-                          ? "Test Demo Connection"
-                          : "Test Connection"}
+                        : "Test Connection"}
                     </button>
 
                     <button
                       className="primary small"
-                      disabled={devopsBusy || !result}
+                      disabled={sendingDevOps || !result}
                       onClick={sendDevOps}
                     >
-                      {devopsBusy
+                      {sendingDevOps
                         ? "Creating…"
-                        : devopsMode === "demo"
-                          ? "Create Demo Test Cases"
-                          : "Send Reviewed Cases to DevOps"}
+                        : "Send Reviewed Cases to DevOps"}
                     </button>
                   </div>
 
                   <div className="devops-import-note">
-                    <b>Recommended for your POC:</b> Export CSV or XLSX, then use Azure DevOps
-                    Test Plans → Test Suite → Import test cases. The exported file uses
-                    Azure DevOps test-case import headers and keeps User Story ID and
-                    Business Module as traceability columns.
+                    <b>For this POC:</b> Connect your Azure DevOps project and send the reviewed
+                    test cases directly to Azure DevOps. Use <b>Test Connection</b> to verify your
+                    details before sending.
                   </div>
 
-                  {mockCreatedCount > 0 && devopsMode === "demo" && (
-                    <div className="devops-demo-result">
-                      <b>Demo DevOps Test Results</b>
-
-                      <span>
-                        {mockCreatedCount} test cases were simulated successfully.
-                      </span>
-
-                      <div className="devops-demo-list">
-                        {cases.slice(0, 10).map((row, i) => (
-                          <div key={i}>
-                            <span>TC-{String(i + 1).padStart(4, "0")}</span>
-                            <span>{titleOf(row) || "Untitled test case"}</span>
-                            <span>Created ✓</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {cases.length > 10 && (
-                        <small>
-                          Showing the first 10 of {cases.length} simulated test cases.
-                        </small>
-                      )}
-                    </div>
-                  )}
-
                   <small>
-                    {devopsMode === "demo"
-                      ? "Demo mode does not contact Microsoft or store DevOps credentials."
-                      : "Credentials are sent only to your local backend for the request and are not stored by this standalone app."}
+                    Credentials are sent only to your local backend for the request and are not stored by this standalone app.
                   </small>
                 </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {templateSavePromptOpen && (
+          <div
+            className="coverage-modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                useImportedTemplateOnly();
+              }
+            }}
+          >
+            <section
+              className="coverage-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="template-save-title"
+              style={{ maxWidth: 520 }}
+            >
+              <div className="coverage-modal-header">
+                <div className="coverage-modal-title">
+                  <b id="template-save-title">
+                    Template Imported Successfully
+                  </b>
+                  <span>
+                    Do you want to save this template as Project Template?
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={useImportedTemplateOnly}
+                  aria-label="Use imported template without saving"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div
+                className="coverage-modal-body"
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={useImportedTemplateOnly}
+                >
+                  No
+                </button>
+
+                <button
+                  type="button"
+                  className="primary small"
+                  onClick={saveImportedTemplateAsProject}
+                >
+                  Yes
+                </button>
               </div>
             </section>
           </div>
